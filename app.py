@@ -107,7 +107,13 @@ PLAY_CACHE_TTL = env_int("PLAY_CACHE_TTL", 600)
 
 @app.after_request
 def add_cors_headers(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    allowed = [o.strip() for o in os.getenv("REVIEWIQ_ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+    origin = request.headers.get("Origin")
+    if "*" in allowed:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    elif origin and origin in allowed:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Vary"] = "Origin"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
@@ -2791,4 +2797,6 @@ def spa_fallback(path: str):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = env_int("PORT", 5000)
+    debug = env_bool("FLASK_DEBUG", False)
+    app.run(host="0.0.0.0", port=port, debug=debug)
